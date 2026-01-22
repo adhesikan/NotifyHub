@@ -75,6 +75,17 @@ const createHeader = () => `
   </header>
 `;
 
+const renderError = (message) => {
+  app.innerHTML = `
+    ${createHeader()}
+    <div class="card">
+      <h2>Unable to load the app</h2>
+      <p>${message}</p>
+      <p class="error">Check your Railway logs and environment variables, then refresh.</p>
+    </div>
+  `;
+};
+
 const renderLogin = () => {
   app.innerHTML = `
     ${createHeader()}
@@ -87,6 +98,7 @@ const renderLogin = () => {
       </label>
       <button class="btn" id="login">Send magic link (dev)</button>
       <div class="error" id="login-error"></div>
+      ${state.error ? `<p class="error">${state.error}</p>` : ''}
     </div>
   `;
 
@@ -440,4 +452,10 @@ window.addEventListener('beforeinstallprompt', (event) => {
   renderInstallPrompt();
 });
 
-bootstrap().then(render);
+bootstrap()
+  .then(render)
+  .catch((error) => {
+    const message = error?.message || 'An unexpected error occurred.';
+    setState({ error: message });
+    renderError(message);
+  });
