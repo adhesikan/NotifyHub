@@ -1,0 +1,15 @@
+{
+  "name": "Notification Hub",
+  "short_name": "NotifyHub",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#111827",
+  "icons": [
+    {
+      "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAElBMVEUAAAD///8AAABfX1+ampq2trY2gB1WAAAAAXRSTlMAQObYZgAAAF9JREFUWMPt0sENwDAIBNAk0P9n3gk7yR4hhW7Fc8RjpzJQDxJ6xfoAl1udVri3MWtT5X6h2PeFV4FQGm2tjxKxAnq9zEwG3HWnp8EyymxO0dUPeuh0HnA0SGgDqQLJPXxKrAsAAAAASUVORK5CYII=",
+      "sizes": "64x64",
+      "type": "image/png"
+    }
+  ]
+}
