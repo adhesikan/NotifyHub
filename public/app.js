@@ -22,16 +22,30 @@ const setState = (patch) => {
 };
 
 const api = async (path, options = {}) => {
-  const res = await fetch(path, {
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    ...options
-  });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || 'Request failed');
+  const controller = new AbortController();
+  const { timeoutMs = 10000, ...fetchOptions } = options;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(path, {
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      signal: controller.signal,
+      ...fetchOptions
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || 'Request failed');
+    }
+    return res.json();
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error('Request timed out. Please try again.');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
   }
-  return res.json();
 };
 
 const navigate = (path) => {
@@ -75,6 +89,17 @@ const createHeader = () => `
   </header>
 `;
 
+const renderError = (message) => {
+  app.innerHTML = `
+    ${createHeader()}
+    <div class="card">
+      <h2>Unable to load the app</h2>
+      <p>${message}</p>
+      <p class="error">Check your Railway logs and environment variables, then refresh.</p>
+    </div>
+  `;
+};
+
 const renderLogin = () => {
   app.innerHTML = `
     ${createHeader()}
@@ -87,6 +112,7 @@ const renderLogin = () => {
       </label>
       <button class="btn" id="login">Send magic link (dev)</button>
       <div class="error" id="login-error"></div>
+      ${state.error ? `<p class="error">${state.error}</p>` : ''}
     </div>
   `;
 
@@ -422,8 +448,26 @@ const render = async () => {
 };
 
 const bootstrap = async () => {
-  await loadSession();
-  await loadConfig();
+  const errors = [];
+
+  try {
+    await loadSession();
+  } catch (error) {
+    state.user = null;
+    state.services = [];
+    errors.push(error);
+  }
+
+  try {
+    await loadConfig();
+  } catch (error) {
+    state.vapidPublicKey = '';
+    errors.push(error);
+  }
+
+  if (errors.length) {
+    state.error = errors[0]?.message || 'Unable to load the app.';
+  }
 };
 
 const urlBase64ToUint8Array = (base64String) => {
@@ -440,4 +484,16 @@ window.addEventListener('beforeinstallprompt', (event) => {
   renderInstallPrompt();
 });
 
-bootstrap().then(render);
+bootstrap()
+  .then(() => {
+    if (state.error) {
+      renderError(state.error);
+      return;
+    }
+    render();
+  })
+  .catch((error) => {
+    const message = error?.message || 'An unexpected error occurred.';
+    setState({ error: message });
+    renderError(message);
+  });
